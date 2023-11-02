@@ -41,7 +41,7 @@ def key_pressed(world: World, key: str):
     elif 'right' in pressed_keys:
         world.player.is_moving = True
         world.player.xspeed = 10
-    elif key == 'space':
+    if key == 'space':
         jump(world)
         FIRST_JUMP=False
 
