@@ -1,22 +1,26 @@
 from designer import *
 from dataclasses import dataclass
 
+set_window_size(1300,600)
 @dataclass
 class Box:
     body:[DesignerObject]
     xspeed:int
     yspeed:int
+    outline:[DesignerObject]
 
 @dataclass
 class Stage:
     blocks:[DesignerObject]
     boxes:[Box]
+    flag:DesignerObject
 
 @dataclass
 class Beam:
     body: DesignerObject
     length:float
     is_colliding:bool
+    endpoint: DesignerObject
 
 @dataclass
 class Player:
@@ -36,12 +40,13 @@ class World:
     gravity: int
     stages: [Stage]
     is_clicking: bool
+    level:int
 
 pressed_keys = []
 FIRST_JUMP =True
 
 def create_world() -> World:
-    return World(create_player(), 0, 1,create_stages(), False)
+    return World(create_player(), 0, 1,create_stages(), False,0)
 
 def advance_the_timer(world: World):
     world.timer += 1
@@ -49,61 +54,88 @@ def advance_the_timer(world: World):
 def create_stages():
     return [Stage([rectangle('black', get_width(),80, get_width()/2, get_height()-40),
                       rectangle('black',get_width(),80, get_width()/2, 40)],
-                      [Box(rectangle('red',80,80, 600, get_height()-160),0,0)])]
+                      [Box(rectangle('red',80,80, 600, get_height()-160),0,0
+                           ,rectangle('purple',80,80,600,get_height()-160,2)
+                           )],emoji('🚩',1100,510))]
 
 def create_player() -> Player:
-    return Player(emoji("🔴"), False, False, 3, 0.0,0, Beam(line('black', 0, 0,0,0), 0.0, False))
+    return Player(emoji("🔴",20,510), False, False, 3, 0.0,0, Beam(line('black', 0, 0,0,0), 0.0, False,circle('purple',0,0,0)))
 
 def physics(world: World):
     if colliding(world.player.obj, world.stages[0].blocks[0]):
         if not world.player.colliding_with_block:
             world.player.yspeed = 0
             world.player.colliding_with_block = True
+            hide(world.stages[world.level].boxes[0].outline)
+
     else:
         world.player.colliding_with_block = False
         world.player.yspeed += world.gravity
+        hide(world.stages[world.level].boxes[0].outline)
 
-    if colliding(world.player.beam.body,world.stages[0].boxes[0].body) and world.is_clicking:
-        world.stages[0].boxes[0].body.x = get_mouse_x()
-        world.stages[0].boxes[0].body.y = get_mouse_y()
+    if world.player.beam.is_colliding and colliding(world.player.beam.body, world.stages[0].boxes[0].body):
+         world.stages[world.level].boxes[0].body.x = get_mouse_x()
+         world.stages[world.level].boxes[0].body.y = get_mouse_y()
+         destroy(world.stages[world.level].boxes[0].outline)
+         world.stages[world.level].boxes[0].outline=rectangle('purple',world.stages[world.level].boxes[0].body.width,world.stages[world.level].boxes[0].body.height,world.stages[world.level].boxes[0].body.x,world.stages[world.level].boxes[0].body.y,3)
 
-    elif not colliding(world.stages[0].boxes[0].body, world.stages[0].blocks[0]):
-        world.stages[0].boxes[0].yspeed += world.gravity
-        world.stages[0].boxes[0].body.y += world.stages[0].boxes[0].yspeed
+    elif not colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[0]):
+        world.stages[world.level].boxes[0].yspeed += world.gravity
+        world.stages[world.level].boxes[0].body.y += world.stages[world.level].boxes[0].yspeed
     else:
-        world.stages[0].boxes[0].yspeed=0
+        world.stages[world.level].boxes[0].yspeed=0
+
+def push_out(world: World):
+    if world.player.obj.y > 510 :
+        world.player.obj.y=510
+    if world.stages[world.level].boxes[0].body.y > world.stages[world.level].blocks[0].y-74:
+        world.stages[world.level].boxes[0].body.y=486
+
+
+
+def scale(world: World,key:str):
+    if colliding(world.player.beam.body, world.stages[world.level].boxes[0].body) and world.is_clicking:
+        size=get_scale(world.stages[world.level].boxes[0].body)
+        outline = get_scale(world.stages[world.level].boxes[0].outline)
+        if key == 'z':
+            size+=.1
+            set_scale(world.stages[world.level].boxes[0].outline, outline)
+
+        elif key == 'x':
+            size-=.1
+        set_scale(world.stages[world.level].boxes[0].body, size)
 
 def line_creation(world: World):
     if world.is_clicking:
         destroy(world.player.beam.body)
+        destroy(world.player.beam.endpoint)
         world.player.beam.body = line('blue', world.player.obj.x, world.player.obj.y, get_mouse_x(), get_mouse_y(), 2)
-
-def scale(world: World,key:str):
-    if colliding(world.player.beam.body, world.stages[0].boxes[0].body) and world.is_clicking:
-        if key == 'z':
-            grow(world.stages[0].boxes[0].body,2)
-
+        world.player.beam.endpoint = circle('purple',3,get_mouse_x(),get_mouse_y())
+        if colliding(world.player.beam.endpoint, world.stages[world.level].boxes[0].body):
+            world.player.beam.is_colliding=True
 
 def clicked(world: World):
     world.is_clicking = True
 
+
 def unclicked(world: World):
     hide(world.player.beam.body)
+    hide(world.stages[world.level].boxes[0].outline)
+    hide(world.player.beam.endpoint)
     world.is_clicking = False
-
+    world.player.beam.is_colliding=False
 
 def key_pressed(world: World, key: str):
     global FIRST_JUMP
-    if key == 'left' or key == 'right':
-        pressed_keys.append(key)
-        if 'left' in pressed_keys and 'right' in pressed_keys:
-            world.player.xspeed = 0
-        elif 'left' in pressed_keys:
-            world.player.is_moving = True
-            world.player.xspeed = -10
-        elif 'right' in pressed_keys:
-            world.player.is_moving = True
-            world.player.xspeed = 10
+    pressed_keys.append(key)
+    if 'left' in pressed_keys and 'right' in pressed_keys:
+        world.player.xspeed = 0
+    elif 'left' in pressed_keys:
+        world.player.is_moving = True
+        world.player.xspeed = -10
+    elif 'right' in pressed_keys:
+        world.player.is_moving = True
+        world.player.xspeed = 10
     if key == 'space':
         jump(world)
         FIRST_JUMP=False
@@ -141,12 +173,13 @@ def player_movement(world: World):
 
     world.player.obj.y += world.player.yspeed
 
+when('typing',scale)
 when('input.mouse.down', clicked)
 when('input.mouse.up', unclicked)
 when('updating', physics)
+when('updating', push_out)
 when('updating', player_movement)
 when('updating', line_creation)
-when('typing',scale)
 when('typing', key_pressed)
 when('done typing', key_released)
 when('updating', advance_the_timer)
