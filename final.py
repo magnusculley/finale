@@ -72,10 +72,17 @@ def physics(world: World):
         world.stages[0].boxes[0].body.y += world.stages[0].boxes[0].yspeed
     else:
         world.stages[0].boxes[0].yspeed=0
+
 def line_creation(world: World):
     if world.is_clicking:
         destroy(world.player.beam.body)
         world.player.beam.body = line('blue', world.player.obj.x, world.player.obj.y, get_mouse_x(), get_mouse_y(), 2)
+
+def scale(world: World,key:str):
+    if colliding(world.player.beam.body, world.stages[0].boxes[0].body) and world.is_clicking:
+        if key == 'z':
+            grow(world.stages[0].boxes[0].body,2)
+
 
 def clicked(world: World):
     world.is_clicking = True
@@ -87,15 +94,16 @@ def unclicked(world: World):
 
 def key_pressed(world: World, key: str):
     global FIRST_JUMP
-    pressed_keys.append(key)
-    if 'left' in pressed_keys and 'right' in pressed_keys:
-        world.player.xspeed = 0
-    if 'left' in pressed_keys:
-        world.player.is_moving = True
-        world.player.xspeed = -10
-    if 'right' in pressed_keys:
-        world.player.is_moving = True
-        world.player.xspeed = 10
+    if key == 'left' or key == 'right':
+        pressed_keys.append(key)
+        if 'left' in pressed_keys and 'right' in pressed_keys:
+            world.player.xspeed = 0
+        elif 'left' in pressed_keys:
+            world.player.is_moving = True
+            world.player.xspeed = -10
+        elif 'right' in pressed_keys:
+            world.player.is_moving = True
+            world.player.xspeed = 10
     if key == 'space':
         jump(world)
         FIRST_JUMP=False
@@ -138,6 +146,7 @@ when('input.mouse.up', unclicked)
 when('updating', physics)
 when('updating', player_movement)
 when('updating', line_creation)
+when('typing',scale)
 when('typing', key_pressed)
 when('done typing', key_released)
 when('updating', advance_the_timer)
