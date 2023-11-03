@@ -25,12 +25,13 @@ class World:
     timer:int
     gravity: int
     stages: [Stage]
+    is_clicking: bool
 
 pressed_keys = []
 FIRST_JUMP =True
 
 def create_world() -> World:
-    return World(create_player(), 0, 1,create_stages())
+    return World(create_player(), 0, 1,create_stages(), False)
 
 def advance_the_timer(world: World):
     world.timer += 1
@@ -39,7 +40,7 @@ def create_stages():
     return [Stage([rectangle('black', get_width(),80, get_width()/2, get_height()-40),rectangle('black',get_width(),80, get_width()/2, 40)])]
 
 def create_player() -> Player:
-    return Player(emoji("🔴"), False, False, 3, 0.0,0,[])
+    return Player(emoji("🔴"), False, False, 3, 0.0,0, line('black', 0, 0,0,0))
 
 def physics(world: World):
     if colliding(world.player.obj, world.stages[0].blocks[0]):
@@ -50,12 +51,18 @@ def physics(world: World):
         world.player.colliding_with_block = False
         world.player.yspeed += world.gravity
 
+def line_creation(world: World):
+    if world.is_clicking:
+        destroy(world.player.beam)
+        world.player.beam = line('blue', world.player.obj.x, world.player.obj.y, get_mouse_x(), get_mouse_y(), 2)
+
 def clicked(world: World):
-    world.player.beam=(line('blue', world.player.obj.x, world.player.obj.y, get_mouse_x(), get_mouse_y(),2))
+    world.is_clicking = True
 
 #def unclicked(world: World):
 def unclicked(world: World):
-    destroy(world.player.beam)
+    hide(world.player.beam)
+    world.is_clicking = False
 
 
 def key_pressed(world: World, key: str):
@@ -108,6 +115,7 @@ when('input.mouse.down', clicked)
 when('input.mouse.up', unclicked)
 when('updating', physics)
 when('updating', player_movement)
+when('updating', line_creation)
 when('typing', key_pressed)
 when('done typing', key_released)
 when('updating', advance_the_timer)
