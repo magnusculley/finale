@@ -53,26 +53,29 @@ def advance_the_timer(world: World):
     world.timer += 1
 
 def create_stages():
-    return [Stage([rectangle('black', get_width(),80, get_width()/2, get_height()-40),
-                      rectangle('black',90,200, 800, get_height()-80,0,)],
+    return [Stage([rectangle('black', get_width(),80, get_width()/2, get_height()-40,anchor='midtop'),
+                      rectangle('black',90,500, 800, get_height()-80,0,)],
                       [Box(rectangle('red',80,80, 600, get_height()-160,0,anchor='midbottom'),0,0
-                           ,1.0,rectangle('purple',80,80,600,get_height()-160,2)
+                           ,1.0,rectangle('purple',0,0,600,get_height()-160,0)
                            )],emoji('🚩',1100,510))]
 
 def create_player() -> Player:
+
     return Player(emoji("🔴",20,510,anchor='midbottom'), False, False, 3, 0.0,0, Beam(line('black', 0, 0,0,0), 0.0, False,circle('purple',0,0,0)))
 
 def physics(world: World):
+    push_out(world.stages[world.level].boxes[0].body,world.stages[world.level].blocks[0].y)
     if colliding(world.player.obj, world.stages[0].blocks[0]):
-        if not world.player.colliding_with_block:
-            world.player.yspeed = 0
-            world.player.colliding_with_block = True
-            hide(world.stages[world.level].boxes[0].outline)
-
+        push_out(world.player.obj,world.stages[0].blocks[0].y)
+        world.player.colliding_with_block = True
     else:
-        world.player.colliding_with_block = False
         world.player.yspeed += world.gravity
-        hide(world.stages[world.level].boxes[0].outline)
+
+
+    if colliding(world.stages[world.level].boxes[0].body,world.player.obj):
+        box_player_interaction(world)
+
+
 
     if world.player.beam.is_colliding and colliding(world.player.beam.body, world.stages[0].boxes[0].body):
          world.stages[world.level].boxes[0].body.x = get_mouse_x()
@@ -86,14 +89,19 @@ def physics(world: World):
         world.stages[world.level].boxes[0].body.y += world.stages[world.level].boxes[0].yspeed
     else:
         world.stages[world.level].boxes[0].yspeed=0
+    if colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[1]):
+        if world.stages[world.level].boxes[0].body.x<world.stages[world.level].blocks[1].x and world.stages[world.level].boxes[0].body.y<world.stages[world.level].blocks[1].y:
+            world.stages[world.level].boxes[0].body.x=world.stages[world.level].blocks[1].x-(world.stages[world.level].blocks[1].width/2)-(world.stages[world.level].boxes[0].body.width/2)
+            unclicked(world)
+        else:
+            world.stages[world.level].boxes[0].body.x=world.stages[world.level].blocks[1].x+(world.stages[world.level].blocks[1].width/2)+(world.stages[world.level].boxes[0].body.width/2)
+            unclicked(world)
 
-def push_out(world: World):
-    if world.player.obj.y > 521 :
-        world.player.obj.y=521
-    if world.stages[world.level].boxes[0].body.y > 523:
-        world.stages[world.level].boxes[0].body.y=523
 
 
+def push_out(obj: DesignerObject, floor:int):
+    if obj.y > floor:
+        obj.y= floor
 
 def scale(world: World,key:str):
     if colliding(world.player.beam.body, world.stages[world.level].boxes[0].body) and world.is_clicking:
@@ -117,7 +125,6 @@ def line_creation(world: World):
 
 def clicked(world: World):
     world.is_clicking = True
-
 
 def unclicked(world: World):
     hide(world.player.beam.body)
@@ -162,12 +169,15 @@ def key_released(world: World, key: str):
 
 def jump(world: World):
     time = world.timer
-    if FIRST_JUMP:
+    if FIRST_JUMP & world.player.colliding_with_block == True:
         world.player.yspeed = -16
         world.player.jump_delay=time
-    elif time-world.player.jump_delay >10 and world.player.colliding_with_block:
+        world.player.colliding_with_block=False
+    elif time-world.player.jump_delay >10 and world.player.colliding_with_block == True:
+        print("HI")
         world.player.yspeed = -16
         world.player.jump_delay = time
+        world.player.colliding_with_block = False
 
 def player_movement(world: World):
     if world.player.obj.x>10 and world.player.obj.x<get_width():
@@ -177,14 +187,21 @@ def player_movement(world: World):
         world.player.obj.x+=1
     elif world.player.obj.x>=get_width():
         world.player.obj.x-=1
+    print(world.player.yspeed)
+    if not world.player.colliding_with_block:
+        world.player.obj.y += world.player.yspeed
 
-    world.player.obj.y += world.player.yspeed
+def box_player_interaction(world:World):
+    world.player.colliding_with_block = True
+    boxleft=0
+    boxright=0
+    boxtop=world.stages[world.level].boxes[0].y
+    playerbottom=world.player.obj.y
 
 when('updating',scale)
 when('input.mouse.down', clicked)
 when('input.mouse.up', unclicked)
 when('updating', physics)
-when('updating', push_out)
 when('updating', player_movement)
 when('updating', line_creation)
 when('typing', key_pressed)
