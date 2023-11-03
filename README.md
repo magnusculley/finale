@@ -1,2 +1,2 @@
-# finale
-final project for cisc108
+# CISC108H final
+Magnus Culley, magnus@udel.edu
