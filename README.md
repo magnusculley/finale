@@ -14,9 +14,9 @@ with at least 3 levels with unique obstacles.
 - [x] The player can move, jump, and is restrained in the window
 - [x] The boxes can be manipulated with the mouse
 #### Phase 2:
-- [] The player can jump on the box
-- [] The player can win a level
-- [] The player has a set amount of 'mana' to manipulate the boxes
+- [ ] The player can jump on the box
+- [ ] The player can win a level
+- [ ] The player has a set amount of 'mana' to manipulate the boxes
 ##### Phase 3:
 - [] 3 unique levels
 - [] Unique obstacles that offer different challenges/solutions
