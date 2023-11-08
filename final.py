@@ -54,7 +54,7 @@ def advance_the_timer(world: World):
 
 def create_stages():
     return [Stage([rectangle('black', get_width(),80, get_width()/2, get_height()-40,anchor='midtop'),
-                      rectangle('black',90,500, 800, get_height()-80,0,)],
+                      rectangle('black',90,500, 800, get_height()-300,0, anchor ='midtop')],
                       [Box(rectangle('red',80,80, 600, get_height()-160,0,anchor='midbottom'),0,0
                            ,1.0,rectangle('purple',0,0,600,get_height()-160,0)
                            )],emoji('🚩',1100,510))]
@@ -79,28 +79,34 @@ def physics(world: World):
          world.stages[world.level].boxes[0].body.y = get_mouse_y()+(world.stages[world.level].boxes[0].body.height/2)
          world.stages[world.level].boxes[0].yspeed = 0
          destroy(world.stages[world.level].boxes[0].outline)
-         world.stages[world.level].boxes[0].outline=rectangle('purple',world.stages[world.level].boxes[0].body.width,world.stages[world.level].boxes[0].body.height,world.stages[world.level].boxes[0].body.x,world.stages[world.level].boxes[0].body.y,3,anchor='midbottom')
+         world.stages[world.level].boxes[0].outline=rectangle('purple',world.stages[world.level].boxes[0].body.width,world.stages[world.level].boxes[0].body.height,world.stages[world.level].boxes[0].body.x,world.stages[world.level].boxes[0].body.y,5,anchor='midbottom')
 
-    elif not colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[0]):
+    if not world.player.beam.is_colliding and not colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[0]):
         world.stages[world.level].boxes[0].yspeed += world.gravity
         world.stages[world.level].boxes[0].body.y += world.stages[world.level].boxes[0].yspeed
     else:
         world.stages[world.level].boxes[0].yspeed=0
+    print(world.stages[world.level].boxes[0].body.y)
     if colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[1]):
-        if world.stages[world.level].boxes[0].body.x<world.stages[world.level].blocks[1].x and world.stages[world.level].boxes[0].body.y<world.stages[world.level].blocks[1].y:
-            world.stages[world.level].boxes[0].body.x=world.stages[world.level].blocks[1].x-(world.stages[world.level].blocks[1].width/2)-(world.stages[world.level].boxes[0].body.width/2)
-            unclicked(world)
+        print(world.stages[world.level].boxes[0].body.y)
+        print(world.stages[world.level].blocks[1].y)
+        if world.stages[world.level].boxes[0].body.y>world.stages[world.level].blocks[1].y+40:
+            if world.stages[world.level].boxes[0].body.x<world.stages[world.level].blocks[1].x:
+                world.stages[world.level].boxes[0].body.x=world.stages[world.level].blocks[1].x-(world.stages[world.level].blocks[1].width/2)-(world.stages[world.level].boxes[0].body.width/2)
+                unclicked(world)
+            else:
+                world.stages[world.level].boxes[0].body.x=world.stages[world.level].blocks[1].x+(world.stages[world.level].blocks[1].width/2)+(world.stages[world.level].boxes[0].body.width/2)
+                unclicked(world)
         else:
-            world.stages[world.level].boxes[0].body.x=world.stages[world.level].blocks[1].x+(world.stages[world.level].blocks[1].width/2)+(world.stages[world.level].boxes[0].body.width/2)
-            unclicked(world)
+            push_out(world.stages[world.level].boxes[0].body,world.stages[world.level].blocks[1].y)
+            world.stages[world.level].boxes[0].yspeed=0
 
     if colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[0]):
         push_out(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[0].y)
 
-
 def push_out(obj: DesignerObject, floor:int):
-    if obj.y > floor:
-        obj.y= floor
+    if obj.y > floor+1:
+        obj.y= floor+1
 
 def scale(world: World,key:str):
     if colliding(world.player.beam.body, world.stages[world.level].boxes[0].body) and world.is_clicking:
@@ -169,18 +175,20 @@ def key_released(world: World, key: str):
 def jump(world: World):
     time = world.timer
     if FIRST_JUMP & world.player.colliding_with_block == True:
-        world.player.yspeed = -15
+        world.player.obj.y = world.player.obj.y-1
+        world.player.yspeed = -16
         world.player.jump_delay=time
         world.player.colliding_with_block=False
     elif time-world.player.jump_delay >10 and world.player.colliding_with_block == True:
-        world.player.yspeed = -15
+        world.player.obj.y = world.player.obj.y - 1
+        world.player.yspeed = -16
         world.player.jump_delay = time
         world.player.colliding_with_block = False
 
 def player_movement(world: World):
     if world.player.obj.x>10 and world.player.obj.x<get_width():
          if world.player.is_moving:
-              world.player.obj.x += world.player.xspeed
+            world.player.obj.x += world.player.xspeed
     elif world.player.obj.x<=10:
         world.player.obj.x+=1
     elif world.player.obj.x>=get_width():
