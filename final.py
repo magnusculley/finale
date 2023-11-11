@@ -64,15 +64,15 @@ def create_player() -> Player:
     return Player(emoji("🔴",20,510,anchor='midbottom'), False, False, 3, 0.0,0, Beam(line('black', 0, 0,0,0), 0.0, False,circle('purple',0,0,0)))
 
 def physics(world: World):
+    print(world.player.yspeed)
     if colliding(world.player.obj, world.stages[world.level].blocks[0]):
         push_out(world.player.obj,world.stages[world.level].blocks[0].y)
         world.player.colliding_with_block = True
+    elif colliding(world.stages[world.level].boxes[0].body,world.player.obj):
+        box_player_interaction(world)
+        print("HI")
     else:
         world.player.yspeed += world.gravity
-
-
-    #if colliding(world.stages[world.level].boxes[0].body,world.player.obj):
-     #   box_player_interaction(world)
 
     if world.player.beam.is_colliding and colliding(world.player.beam.body, world.stages[0].boxes[0].body):
          world.stages[world.level].boxes[0].body.x = get_mouse_x()
@@ -80,16 +80,13 @@ def physics(world: World):
          world.stages[world.level].boxes[0].yspeed = 0
          destroy(world.stages[world.level].boxes[0].outline)
          world.stages[world.level].boxes[0].outline=rectangle('purple',world.stages[world.level].boxes[0].body.width,world.stages[world.level].boxes[0].body.height,world.stages[world.level].boxes[0].body.x,world.stages[world.level].boxes[0].body.y,5,anchor='midbottom')
-
-    if not world.player.beam.is_colliding and not colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[0]):
+    elif not world.player.beam.is_colliding and not colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[0]):
         world.stages[world.level].boxes[0].yspeed += world.gravity
         world.stages[world.level].boxes[0].body.y += world.stages[world.level].boxes[0].yspeed
     else:
         world.stages[world.level].boxes[0].yspeed=0
-    print(world.stages[world.level].boxes[0].body.y)
+
     if colliding(world.stages[world.level].boxes[0].body, world.stages[world.level].blocks[1]):
-        print(world.stages[world.level].boxes[0].body.y)
-        print(world.stages[world.level].blocks[1].y)
         if world.stages[world.level].boxes[0].body.y>world.stages[world.level].blocks[1].y+40:
             if world.stages[world.level].boxes[0].body.x<world.stages[world.level].blocks[1].x:
                 world.stages[world.level].boxes[0].body.x=world.stages[world.level].blocks[1].x-(world.stages[world.level].blocks[1].width/2)-(world.stages[world.level].boxes[0].body.width/2)
@@ -107,6 +104,7 @@ def physics(world: World):
 def push_out(obj: DesignerObject, floor:int):
     if obj.y > floor+1:
         obj.y= floor+1
+
 
 def scale(world: World,key:str):
     if colliding(world.player.beam.body, world.stages[world.level].boxes[0].body) and world.is_clicking:
@@ -196,12 +194,11 @@ def player_movement(world: World):
     if not world.player.colliding_with_block:
         world.player.obj.y += world.player.yspeed
 
-#def box_player_interaction(world:World):
-#    world.player.colliding_with_block = True
-#    boxleft=0
-#    boxright=0
-#    boxtop=world.stages[world.level].boxes[0].body.y
-#    playerbottom=world.player.obj.y
+def box_player_interaction(world:World):
+    unclicked(world)
+    world.player.colliding_with_block=True
+    boxtop=world.stages[world.level].boxes[0].body.y-world.stages[world.level].boxes[0].body.height
+    push_out(world.player.obj, boxtop)
 
 when('updating',scale)
 when('input.mouse.down', clicked)
