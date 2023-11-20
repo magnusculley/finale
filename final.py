@@ -28,10 +28,12 @@ class Player:
     obj: DesignerObject
     is_moving: bool
     colliding_with_block: bool
+    colliding_with_box: bool
     xspeed: int
     yspeed: float
     jump_delay:int
     beam :Beam
+    mana: int
 
 
 @dataclass
@@ -61,17 +63,21 @@ def create_stages():
 
 def create_player() -> Player:
 
-    return Player(emoji("🔴",20,510,anchor='midbottom'), False, False, 3, 0.0,0, Beam(line('black', 0, 0,0,0), 0.0, False,circle('purple',0,0,0)))
+    return Player(emoji("🔴",20,510,anchor='midbottom'), False, False, False, 3, 0.0,0, Beam(line('black', 0, 0,0,0), 0.0, False,circle('purple',0,0,0)),4)
 
 def physics(world: World):
-    print(world.player.yspeed)
     if colliding(world.player.obj, world.stages[world.level].blocks[0]):
         push_out(world.player.obj,world.stages[world.level].blocks[0].y)
         world.player.colliding_with_block = True
-    elif colliding(world.stages[world.level].boxes[0].body,world.player.obj):
+    if colliding(world.player.obj, world.stages[world.level].blocks[1]):
+        push_out(world.player.obj,world.stages[world.level].blocks[1].y)
+        world.player.colliding_with_block = True
+    if colliding(world.player.obj, world.stages[world.level].flag):
+        world.level=world.level+1
+    if colliding(world.stages[world.level].boxes[0].body,world.player.obj):
         box_player_interaction(world)
-        print("HI")
     else:
+        world.player.colliding_with_box = False
         world.player.yspeed += world.gravity
 
     if world.player.beam.is_colliding and colliding(world.player.beam.body, world.stages[0].boxes[0].body):
@@ -107,11 +113,13 @@ def push_out(obj: DesignerObject, floor:int):
 
 
 def scale(world: World,key:str):
-    if colliding(world.player.beam.body, world.stages[world.level].boxes[0].body) and world.is_clicking:
+    if colliding(world.player.beam.body, world.stages[world.level].boxes[0].body) and world.is_clicking and world.player.mana >0:
         if key == 'z':
             world.stages[world.level].boxes[0].grow=1.035
+            world.player.mana-=1
         elif key == 'x':
             world.stages[world.level].boxes[0].grow=.965
+            world.player.mana-=1
         world.stages[world.level].boxes[0].body.height=world.stages[world.level].boxes[0].body.height*world.stages[world.level].boxes[0].grow
         world.stages[world.level].boxes[0].body.width = world.stages[world.level].boxes[0].body.width * world.stages[world.level].boxes[0].grow
         world.stages[world.level].boxes[0].outline.height = world.stages[world.level].boxes[0].outline.height * world.stages[world.level].boxes[0].grow
@@ -172,12 +180,12 @@ def key_released(world: World, key: str):
 
 def jump(world: World):
     time = world.timer
-    if FIRST_JUMP & world.player.colliding_with_block == True:
+    if FIRST_JUMP & world.player.colliding_with_block:
         world.player.obj.y = world.player.obj.y-1
         world.player.yspeed = -16
         world.player.jump_delay=time
         world.player.colliding_with_block=False
-    elif time-world.player.jump_delay >10 and world.player.colliding_with_block == True:
+    elif time-world.player.jump_delay >10 and world.player.colliding_with_block or world.player.colliding_with_box and time-world.player.jump_delay >10 :
         world.player.obj.y = world.player.obj.y - 1
         world.player.yspeed = -16
         world.player.jump_delay = time
@@ -196,9 +204,16 @@ def player_movement(world: World):
 
 def box_player_interaction(world:World):
     unclicked(world)
-    world.player.colliding_with_block=True
-    boxtop=world.stages[world.level].boxes[0].body.y-world.stages[world.level].boxes[0].body.height
-    push_out(world.player.obj, boxtop)
+    world.player.colliding_with_box =True
+    boxtop = world.stages[world.level].boxes[0].body.y - world.stages[world.level].boxes[0].body.height
+    boxleft = world.stages[world.level].boxes[0].body.x - (world.stages[world.level].boxes[0].body.width/2)
+    boxright = world.stages[world.level].boxes[0].body.x + (world.stages[world.level].boxes[0].body.width/2)
+    if world.player.obj.x>boxleft and world.player.obj.x<boxright:
+        push_out(world.player.obj, boxtop)
+    if world.player.obj.x<=boxleft:
+        world.player.is_moving=False
+        world.player.obj.x-=3
+
 
 when('updating',scale)
 when('input.mouse.down', clicked)
