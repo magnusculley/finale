@@ -7,7 +7,9 @@ set_window_size(1300, 600)
 @dataclass
 class Box:
     '''
-    Boxes have a rectangle body and an outline th
+    Boxes have a rectangle body and an outline DesignerObjects that visually represent the boxes
+    the is_colliding and is_selected booleans control the logic
+    xspeed and yspeed control movement, grow controls scale
     '''
     body: [DesignerObject]
     xspeed: int
@@ -20,6 +22,10 @@ class Box:
 
 @dataclass
 class Stage:
+    '''
+    Stages make up the actual level and are made up of blocks, boxes, flag, and title
+    this consists of the interactable objects in the world
+    '''
     blocks: [DesignerObject]
     boxes: [Box]
     flag: DesignerObject
@@ -28,6 +34,10 @@ class Stage:
 
 @dataclass
 class Beam:
+    '''
+    The beam shoots out from the player and has a body and endpoint DesignerObject for collision detection
+    is_colliding controls the logic of the beam
+    '''
     body: DesignerObject
     length: float
     is_colliding: bool
@@ -36,6 +46,12 @@ class Beam:
 
 @dataclass
 class Player:
+    '''
+    The player has a body to control as a DesignerObject and many booleans to control the logic of the player
+    yspeed and xspeed controls the movement of the body
+    Beam is a class that is attached to the Player
+    mana, drain, and jump_delay control mechanics of the player
+    '''
     body: DesignerObject
     is_moving: bool
     colliding_with_ground: bool
@@ -50,6 +66,10 @@ class Player:
 
 @dataclass
 class Interface:
+    '''
+    The interface is solely cosmetic, is consists of DesignerObjects
+    that display information at the top of the screen
+    '''
     mana_bar: DesignerObject
     mana_text: DesignerObject
     instructions: DesignerObject
@@ -57,6 +77,11 @@ class Interface:
 
 @dataclass
 class World:
+    '''
+    The World data class controls the state of everything in the game.
+    Player, Stages, and Interface all exist in the world Class.
+    is_clicking and level, are very important logic controllers in the game
+    '''
     player: Player
     timer: int
     gravity: int
@@ -66,8 +91,8 @@ class World:
     interface: Interface
 
 
-PRESSED_KEYS = []
-FIRST_JUMP = True
+PRESSED_KEYS = [] #A global list containing keys that are currently pressed
+FIRST_JUMP = True #Tracks whether the first jump has occured
 
 
 def create_world() -> World:
@@ -89,6 +114,7 @@ def create_stages() -> [Stage]:
     Returns:
         [Stage]: The playable levels
     '''
+    #Each stage in the list contains all the elements of a level
     return [Stage([rectangle('black', get_width(), 80, get_width() / 2, get_height() - 40, anchor='midtop'),
                    rectangle('black', 90, 300, 800, get_height() - 250, 0, anchor='midtop')],
                   [Box(rectangle('red', 60, 60, 600, 600, 0, anchor='midbottom'), 0, 0, 1.0,
@@ -135,7 +161,7 @@ def create_interface() -> Interface:
            Interface: The text and bar at the top
     '''
     controls = group(text("black", "Controls:", 20, 1100, 20),
-                     text("black", "A, S: Movement", 20, 1100, 40),
+                     text("black", "A, D: Movement", 20, 1100, 40),
                      text("black", "Space: Jump", 20, 1100, 60),
                      text("black", "R: Reset Level", 20, 1100, 80),
                      text("black", "Z / X: Grow / Shrink", 20, 1100, 100),
@@ -189,6 +215,7 @@ def key_pressed(world: World, key: str):
     '''
     global FIRST_JUMP
     PRESSED_KEYS.append(key)
+    #'a' and 'd' control movement
     if 'a' in PRESSED_KEYS and 'd' in PRESSED_KEYS:
         world.player.xspeed = 0
     elif 'a' in PRESSED_KEYS:
@@ -200,6 +227,7 @@ def key_pressed(world: World, key: str):
     if key == 'space':
         jump(world)
         FIRST_JUMP = False
+    #'z' and 'x' control scaling of the box
     if key == 'z':
         world.stages[world.level].boxes[0].grow = 1.035
         world.player.drain = 1
@@ -224,6 +252,7 @@ def key_released(world: World, key: str):
     Global Variables:
         PRESSED_KEYS (list): A global list containing keys that are currently pressed
     '''
+    #prevents the player from moving continuously after the key is released
     if key in PRESSED_KEYS:
         PRESSED_KEYS.remove(key)
     if 'a' in PRESSED_KEYS:
@@ -247,10 +276,13 @@ def colliding_state(world: World):
     Args:
         world (World): The current state of the world
     '''
+    #player and ground block collision
     if colliding(world.player.body, world.stages[world.level].blocks[0]):
         world.player.colliding_with_ground = True
     else:
         world.player.colliding_with_ground = False
+
+    #goes through every box in a level and checks collision with player, beam, and ground
     for box in world.stages[world.level].boxes:
         if colliding(world.player.body, box.body):
             world.player.colliding_with_box = True
@@ -288,6 +320,7 @@ def physics(world: World):
         push_out(world.player, floor)
     if world.player.is_moving:
         player_movement(world)
+    #creates line when clicking and destroys when not clicking
     if world.is_clicking:
         line_creation(world)
         if world.player.beam.is_colliding and world.player.mana > 0:
@@ -305,6 +338,7 @@ def physics(world: World):
     if world.player.colliding_with_box:
         box_player_interaction(world)
 
+    #interactions for all blocks against the player and every box
     for block_index in range(len(world.stages[world.level].blocks)):
         if colliding(world.player.body, world.stages[world.level].blocks[block_index]):
             player_block_interaction(world, block_index)
@@ -324,6 +358,8 @@ def next_level(world: World):
     Returns:
         None
     '''
+    #Basically every level exists at the same time in a conveyor belt and the
+    #next level is shifted up to you upon completing a level
     if colliding(world.stages[world.level].flag, world.player.body):
         world.level += 1
         world.player.mana = 100
